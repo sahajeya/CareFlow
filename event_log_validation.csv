@@ -1,0 +1,8 @@
+validation_check,result
+Total events,723
+Unique patients,100
+Missing required values,0
+Invalid timestamps,0
+Duplicate patient-timestamp rows,0
+Patients starting with registration,100
+Patients ending with discharge,100
