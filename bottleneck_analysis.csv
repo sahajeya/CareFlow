@@ -1,10 +1,10 @@
-activity_name,next_activity,count,mean,median,max
-Lab Result,Treatment,56,36.75,37.5,60.0
-Treatment,Discharge,100,34.73,34.5,60.0
-Doctor Consultation,Treatment,44,34.41,35.5,60.0
-Lab Result,Doctor Consultation,32,33.38,34.5,56.0
-Lab Test,Lab Result,88,33.27,34.0,60.0
-Treatment,Treatment,15,32.53,27.0,59.0
-Doctor Consultation,Lab Test,88,32.23,33.5,57.0
-Patient Registration,Triage,100,30.68,31.5,59.0
-Triage,Doctor Consultation,100,30.4,29.5,58.0
+activity_name,next_activity,count,mean,median,p90,max
+Lab Result,Treatment,56,36.75,37.5,56.0,60.0
+Treatment,Discharge,100,34.73,34.5,57.0,60.0
+Doctor Consultation,Treatment,44,34.41,35.5,54.7,60.0
+Lab Result,Doctor Consultation,32,33.38,34.5,52.0,56.0
+Lab Test,Lab Result,88,33.27,34.0,56.0,60.0
+Treatment,Treatment,15,32.53,27.0,56.0,59.0
+Doctor Consultation,Lab Test,88,32.23,33.5,51.0,57.0
+Patient Registration,Triage,100,30.68,31.5,50.0,59.0
+Triage,Doctor Consultation,100,30.4,29.5,53.0,58.0

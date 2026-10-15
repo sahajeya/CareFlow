@@ -1,49 +1,77 @@
+
 import pandas as pd
 
 # Load hospital event log
 df = pd.read_csv("hospital_event_logs.csv")
 
 # Convert timestamp
-df["timestamp"] = pd.to_datetime(df["timestamp"])
+df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
 
-# Sort by patient and time
-df = df.sort_values(["case_id", "timestamp"])
+# Remove invalid records and sort events
+df = df.dropna(
+    subset=["case_id", "activity_name", "timestamp"]
+).sort_values(["case_id", "timestamp"])
 
-# Get next activity and next timestamp
-df["next_activity"] = df.groupby("case_id")["activity_name"].shift(-1)
-df["next_timestamp"] = df.groupby("case_id")["timestamp"].shift(-1)
+# Get next activity and timestamp for each patient
+df["next_activity"] = (
+    df.groupby("case_id")["activity_name"].shift(-1)
+)
+df["next_timestamp"] = (
+    df.groupby("case_id")["timestamp"].shift(-1)
+)
 
-# Calculate transition time in minutes
+# Calculate elapsed time between consecutive activities
 df["transition_minutes"] = (
     df["next_timestamp"] - df["timestamp"]
 ).dt.total_seconds() / 60
 
-# Remove last activity of each patient
-df = df.dropna(subset=["next_activity", "transition_minutes"])
+# Keep valid consecutive transitions
+df = df.dropna(
+    subset=["next_activity", "transition_minutes"]
+)
+df = df[df["transition_minutes"] >= 0].copy()
 
-# Group transitions
+# Calculate bottleneck metrics for each transition
 bottleneck = (
-    df.groupby(["activity_name", "next_activity"])["transition_minutes"]
-    .agg(["count", "mean", "median", "max"])
+    df.groupby(["activity_name", "next_activity"])
+    ["transition_minutes"]
+    .agg(
+        count="count",
+        mean="mean",
+        median="median",
+        p90=lambda x: x.quantile(0.90),
+        max="max"
+    )
     .reset_index()
 )
 
-# Round values
-bottleneck["mean"] = bottleneck["mean"].round(2)
-bottleneck["median"] = bottleneck["median"].round(2)
-bottleneck["max"] = bottleneck["max"].round(2)
+# Round time values
+time_columns = ["mean", "median", "p90", "max"]
+bottleneck[time_columns] = bottleneck[time_columns].round(2)
 
-# Sort by average transition time
-bottleneck = bottleneck.sort_values("mean", ascending=False)
+# Sort by highest average elapsed time
+bottleneck = bottleneck.sort_values(
+    "mean", ascending=False
+)
 
-print("\n" + "=" * 60)
-print("CARE FLOW - TRANSITION TIME BOTTLENECK ANALYSIS")
-print("=" * 60)
-
+# Display report
+print("\n" + "=" * 75)
+print("CARE FLOW - IMPROVED BOTTLENECK ANALYSIS")
+print("=" * 75)
 print(bottleneck.to_string(index=False))
 
-# Save result for Power BI
+# Save complete report for Power BI
 bottleneck.to_csv("bottleneck_analysis.csv", index=False)
 
+# Display top 3 transitions by P90
+top_delays = bottleneck.sort_values(
+    "p90", ascending=False
+).head(3)
+
+print("\n" + "=" * 75)
+print("TOP 3 TRANSITIONS BY 90TH PERCENTILE TIME")
+print("=" * 75)
+print(top_delays.to_string(index=False))
+
 print("\nBottleneck analysis completed successfully!")
-print("Saved as: bottleneck_analysis.csv")
+print("Updated report saved as: bottleneck_analysis.csv")
