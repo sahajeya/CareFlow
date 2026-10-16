@@ -1,0 +1,48 @@
+case_id,from_activity,revisited_activity,timestamp
+P0004,Treatment,Treatment,2026-01-01 12:01:00
+P0007,Lab Result,Doctor Consultation,2026-01-01 11:37:00
+P0010,Treatment,Treatment,2026-01-01 10:57:00
+P0014,Lab Result,Doctor Consultation,2026-01-01 11:02:00
+P0020,Lab Result,Doctor Consultation,2026-01-01 11:36:00
+P0021,Lab Result,Doctor Consultation,2026-01-01 10:29:00
+P0024,Lab Result,Doctor Consultation,2026-01-01 12:01:00
+P0029,Treatment,Treatment,2026-01-01 12:19:00
+P0030,Lab Result,Doctor Consultation,2026-01-01 12:17:00
+P0032,Lab Result,Doctor Consultation,2026-01-01 10:05:00
+P0033,Lab Result,Doctor Consultation,2026-01-01 12:28:00
+P0034,Lab Result,Doctor Consultation,2026-01-01 11:26:00
+P0034,Treatment,Treatment,2026-01-01 12:08:00
+P0036,Lab Result,Doctor Consultation,2026-01-01 11:04:00
+P0038,Lab Result,Doctor Consultation,2026-01-01 10:39:00
+P0038,Treatment,Treatment,2026-01-01 11:13:00
+P0041,Lab Result,Doctor Consultation,2026-01-01 12:06:00
+P0042,Lab Result,Doctor Consultation,2026-01-01 10:21:00
+P0043,Lab Result,Doctor Consultation,2026-01-01 11:36:00
+P0043,Treatment,Treatment,2026-01-01 12:44:00
+P0044,Lab Result,Doctor Consultation,2026-01-01 10:38:00
+P0046,Lab Result,Doctor Consultation,2026-01-01 11:32:00
+P0051,Lab Result,Doctor Consultation,2026-01-01 11:23:00
+P0053,Treatment,Treatment,2026-01-01 12:11:00
+P0054,Lab Result,Doctor Consultation,2026-01-01 10:43:00
+P0056,Lab Result,Doctor Consultation,2026-01-01 10:47:00
+P0064,Lab Result,Doctor Consultation,2026-01-01 11:55:00
+P0066,Lab Result,Doctor Consultation,2026-01-01 11:31:00
+P0067,Lab Result,Doctor Consultation,2026-01-01 11:42:00
+P0067,Treatment,Treatment,2026-01-01 13:34:00
+P0069,Lab Result,Doctor Consultation,2026-01-01 11:54:00
+P0070,Treatment,Treatment,2026-01-01 11:43:00
+P0072,Lab Result,Doctor Consultation,2026-01-01 11:25:00
+P0076,Lab Result,Doctor Consultation,2026-01-01 10:33:00
+P0076,Treatment,Treatment,2026-01-01 11:50:00
+P0079,Lab Result,Doctor Consultation,2026-01-01 10:04:00
+P0080,Treatment,Treatment,2026-01-01 11:20:00
+P0081,Lab Result,Doctor Consultation,2026-01-01 11:25:00
+P0081,Treatment,Treatment,2026-01-01 12:24:00
+P0087,Lab Result,Doctor Consultation,2026-01-01 12:00:00
+P0088,Lab Result,Doctor Consultation,2026-01-01 10:03:00
+P0089,Treatment,Treatment,2026-01-01 11:21:00
+P0092,Lab Result,Doctor Consultation,2026-01-01 11:28:00
+P0094,Treatment,Treatment,2026-01-01 11:00:00
+P0095,Lab Result,Doctor Consultation,2026-01-01 11:07:00
+P0097,Lab Result,Doctor Consultation,2026-01-01 11:33:00
+P0100,Treatment,Treatment,2026-01-01 11:13:00
