@@ -1,0 +1,5 @@
+deviation_category,activity_or_difference,occurrence_count,unique_patients
+Extra/repeated activity,Doctor Consultation,26,26
+Missing expected activity,"Lab Test, Lab Result",12,12
+Extra/repeated activity,Treatment,9,9
+Extra/repeated activity,"Doctor Consultation, Treatment",6,6
