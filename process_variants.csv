@@ -1,0 +1,6 @@
+variant_id,process_variant,patient_count,average_events,average_journey_minutes,percentage
+V001,Patient Registration -> Triage -> Doctor Consultation -> Lab Test -> Lab Result -> Treatment -> Discharge,47,7.0,196.19,47.0
+V002,Patient Registration -> Triage -> Doctor Consultation -> Lab Test -> Lab Result -> Doctor Consultation -> Treatment -> Discharge,26,8.0,233.62,26.0
+V003,Patient Registration -> Triage -> Doctor Consultation -> Treatment -> Discharge,12,5.0,136.58,12.0
+V004,Patient Registration -> Triage -> Doctor Consultation -> Lab Test -> Lab Result -> Treatment -> Treatment -> Discharge,9,8.0,225.33,9.0
+V005,Patient Registration -> Triage -> Doctor Consultation -> Lab Test -> Lab Result -> Doctor Consultation -> Treatment -> Treatment -> Discharge,6,9.0,251.83,6.0
