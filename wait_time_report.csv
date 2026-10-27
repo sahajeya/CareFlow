@@ -1,0 +1,7 @@
+next_activity,event_count,average_elapsed_minutes,maximum_elapsed_minutes
+Discharge,100,30.42,60.0
+Doctor Consultation,127,32.23,60.0
+Lab Result,85,33.45,60.0
+Lab Test,85,32.26,60.0
+Treatment,107,32.26,60.0
+Triage,100,33.13,60.0
