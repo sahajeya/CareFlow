@@ -1,0 +1,10 @@
+previous_activity,next_activity,patient_transitions,unique_patients,average_wait_minutes,median_wait_minutes,maximum_wait_minutes
+Lab Result,Doctor Consultation,27,27,36.0,36.0,59.0
+Lab Result,Treatment,58,58,35.29,36.0,58.0
+Lab Test,Lab Result,85,85,33.45,35.0,60.0
+Patient Registration,Triage,100,100,33.13,35.5,60.0
+Doctor Consultation,Lab Test,85,85,32.26,31.0,60.0
+Triage,Doctor Consultation,100,100,31.21,30.0,60.0
+Treatment,Discharge,100,100,30.42,27.0,60.0
+Doctor Consultation,Treatment,42,42,28.98,23.5,60.0
+Treatment,Treatment,7,7,26.86,20.0,50.0
