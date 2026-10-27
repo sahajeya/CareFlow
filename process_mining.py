@@ -116,4 +116,5 @@ conformance_df.to_csv(
 print("\nConformance results saved as conformance_results.csv")
 
 print("\nConformance Summary:")
+
 print(conformance_df.head(10))
