@@ -1,0 +1,9 @@
+validation_check,error_count,status
+Missing Patient IDs,0,PASS
+Missing Activity Names,0,PASS
+Missing Timestamps,0,PASS
+Blank Patient IDs,0,PASS
+Blank Activity Names,0,PASS
+Duplicate Records,0,PASS
+Invalid Timestamps,0,PASS
+Invalid Patient Activity Sequences,0,PASS
