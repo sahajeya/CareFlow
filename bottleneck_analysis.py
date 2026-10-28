@@ -14,7 +14,16 @@ if not input_csv.exists():
         f"Hospital event log not found: {input_csv}"
     )
 
-df = pd.read_csv(input_csv)
+try:
+    df = pd.read_csv(input_csv)
+except pd.errors.EmptyDataError as exc:
+    raise ValueError(
+        "Hospital event log CSV is empty or has no header."
+    ) from exc
+except pd.errors.ParserError as exc:
+    raise ValueError(
+        "Hospital event log CSV format is invalid."
+    ) from exc
 
 # Validate required columns
 required_columns = [
