@@ -1,0 +1,7 @@
+transition,average_minutes,maximum_minutes,minimum_minutes,patient_count,rank,contribution_percentage,bottleneck_level
+Lab Test -> Lab Result,32.84,60.0,5.0,100,1,17.5,High
+Treatment -> Discharge,32.04,60.0,5.0,100,2,17.07,High
+Patient Registration -> Triage,31.79,57.0,5.0,100,3,16.94,Medium
+Doctor Consultation -> Lab Test,30.86,60.0,5.0,100,4,16.44,Medium
+Lab Result -> Treatment,30.2,60.0,5.0,100,5,16.09,Low
+Triage -> Doctor Consultation,29.95,60.0,5.0,100,6,15.96,Low
