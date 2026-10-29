@@ -75,3 +75,28 @@ pd.DataFrame(
 ).to_csv("event_log_validation.csv", index=False)
 
 print("\nReport saved as event_log_validation.csv")
+# Stop the pipeline if validation checks fail
+errors = []
+
+if missing_values > 0:
+    errors.append("Missing required values found")
+
+if invalid_timestamps > 0:
+    errors.append("Invalid timestamps found")
+
+if duplicate_timestamps > 0:
+    errors.append("Duplicate patient-timestamp records found")
+
+if patients_starting_registration != unique_patients:
+    errors.append("Some patients do not start with Patient Registration")
+
+if patients_ending_discharge != unique_patients:
+    errors.append("Some patients do not end with Discharge")
+
+if errors:
+    print("\nVALIDATION FAILED:")
+    for error in errors:
+        print(f"- {error}")
+    raise SystemExit(1)
+
+print("\nVALIDATION PASSED")
