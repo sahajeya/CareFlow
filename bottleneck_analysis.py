@@ -82,6 +82,13 @@ df["transition_minutes"] = (
     df["next_timestamp"] - df["timestamp"]
 ).dt.total_seconds() / 60
 
+# Validate transition times
+if (df["transition_minutes"].dropna() < 0).any():
+    raise ValueError(
+        "Negative transition times found. "
+        "Please check the event log timestamps."
+    )
+
 # Remove last activity of each patient
 df = df.dropna(
     subset=["next_activity", "transition_minutes"]
