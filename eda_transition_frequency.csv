@@ -1,0 +1,10 @@
+activity_name,next_activity,transition_count
+Treatment,Discharge,100
+Patient Registration,Triage,100
+Triage,Doctor Consultation,100
+Doctor Consultation,Lab Test,88
+Lab Test,Lab Result,88
+Lab Result,Treatment,56
+Doctor Consultation,Treatment,44
+Lab Result,Doctor Consultation,32
+Treatment,Treatment,15

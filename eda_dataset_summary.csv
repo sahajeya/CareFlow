@@ -1,0 +1,2 @@
+total_events,total_patients,total_activities,missing_values,duplicate_rows,invalid_timestamps,start_timestamp,end_timestamp
+723,100,7,0,0,0,2026-01-01 08:05:00,2026-01-01 14:18:00
