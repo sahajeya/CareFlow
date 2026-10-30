@@ -3,10 +3,49 @@ import pm4py
 from pm4py.visualization.process_tree import visualizer as pt_visualizer
 
 # Load hospital event log
-df = pd.read_csv("hospital_event_logs.csv")
+try:
+    df = pd.read_csv("hospital_event_logs.csv")
+except pd.errors.EmptyDataError as exc:
+    raise ValueError(
+        "Hospital event log CSV is empty or has no header."
+    ) from exc
+except pd.errors.ParserError as exc:
+    raise ValueError(
+        "Hospital event log CSV format is invalid."
+    ) from exc
 
-# Convert timestamp
-df["timestamp"] = pd.to_datetime(df["timestamp"])
+# Validate required columns
+required_columns = [
+    "case_id",
+    "activity_name",
+    "timestamp"
+]
+
+missing_columns = [
+    col for col in required_columns if col not in df.columns
+]
+
+if missing_columns:
+    raise ValueError(
+        f"Missing required columns: {missing_columns}"
+    )
+
+if df.empty:
+    raise ValueError("Hospital event log contains no records.")
+
+if df[required_columns].isnull().any().any():
+    raise ValueError(
+        "Required columns contain missing values."
+    )
+
+# Validate timestamps
+df["timestamp"] = pd.to_datetime(
+    df["timestamp"],
+    errors="coerce"
+)
+
+if df["timestamp"].isnull().any():
+    raise ValueError("Invalid timestamps found in event log.")
 
 # Sort events by patient and time
 df = df.sort_values(["case_id", "timestamp"])
