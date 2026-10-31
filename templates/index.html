@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CareFlow | Clinical Pathway Analytics</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f6fb;
+            color: #1e293b;
+        }
+
+        header {
+            background: #123b5d;
+            color: white;
+            padding: 22px 35px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 7px;
+        }
+
+        header p {
+            color: #d5e5f4;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            margin-bottom: 18px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+            border-top: 4px solid #168c91;
+        }
+
+        .card p {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .card h2 {
+            font-size: 32px;
+            color: #123b5d;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+            margin-bottom: 25px;
+            overflow-x: auto;
+        }
+
+        .panel h2 {
+            margin-bottom: 18px;
+            font-size: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 13px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+
+        th {
+            background: #edf4f8;
+            color: #123b5d;
+        }
+
+        .status {
+            color: #087f5b;
+            font-weight: bold;
+        }
+
+        .message {
+            padding: 15px;
+            color: #64748b;
+        }
+
+        footer {
+            text-align: center;
+            padding: 22px;
+            color: #64748b;
+        }
+
+        @media (max-width: 700px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>CareFlow</h1>
+    <p>Clinical Pathway Process Mining</p>
+</header>
+
+<main>
+
+    <section>
+        <h2 class="section-title">Hospital Workflow Overview</h2>
+
+        <div class="cards">
+
+            <div class="card">
+                <p>Total Patients Analyzed</p>
+                <h2 id="totalPatients">Loading...</h2>
+            </div>
+
+            <div class="card">
+                <p>Total Event Records</p>
+                <h2 id="totalEvents">Loading...</h2>
+            </div>
+
+            <div class="card">
+                <p>Total Hospital Activities</p>
+                <h2 id="totalActivities">Loading...</h2>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>Patient Journey Records</h2>
+
+        <p id="patientMessage" class="message">
+            Loading patient records...
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient Case ID</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Total Activities</th>
+                </tr>
+            </thead>
+
+            <tbody id="patientTable"></tbody>
+        </table>
+    </section>
+
+    <section class="panel">
+        <h2>System Status</h2>
+        <p class="status" id="systemStatus">
+            Checking backend connection...
+        </p>
+    </section>
+
+</main>
+
+<footer>
+    CareFlow — Hospital Process and Waiting Time Analysis
+</footer>
+
+<script>
+    async function loadSummary() {
+        try {
+            const response = await fetch("/api/summary");
+
+            if (!response.ok) {
+                throw new Error("Summary API failed");
+            }
+
+            const data = await response.json();
+
+            document.getElementById("totalPatients").textContent =
+                data.total_patients;
+
+            document.getElementById("totalEvents").textContent =
+                data.total_events;
+
+            document.getElementById("totalActivities").textContent =
+                data.total_activities;
+
+            document.getElementById("systemStatus").textContent =
+                "Backend and database connected successfully.";
+
+        } catch (error) {
+            document.getElementById("systemStatus").textContent =
+                "Unable to connect to the backend.";
+
+            document.getElementById("totalPatients").textContent = "—";
+            document.getElementById("totalEvents").textContent = "—";
+            document.getElementById("totalActivities").textContent = "—";
+        }
+    }
+
+    async function loadPatients() {
+        const table = document.getElementById("patientTable");
+        const message = document.getElementById("patientMessage");
+
+        try {
+            const response = await fetch("/api/patients");
+
+            if (!response.ok) {
+                throw new Error("Patient API failed");
+            }
+
+            const patients = await response.json();
+
+            table.replaceChildren();
+
+            if (patients.length === 0) {
+                message.textContent = "No patient records found.";
+                return;
+            }
+
+            message.textContent =
+                "Showing " + patients.length + " patient records.";
+
+            patients.forEach(patient => {
+                const row = document.createElement("tr");
+
+                [
+                    patient.case_id,
+                    patient.start_time,
+                    patient.end_time,
+                    patient.total_activities
+                ].forEach(value => {
+                    const cell = document.createElement("td");
+                    cell.textContent = value ?? "—";
+                    row.appendChild(cell);
+                });
+
+                table.appendChild(row);
+            });
+
+        } catch (error) {
+            message.textContent =
+                "Unable to load patient records. Check the backend.";
+        }
+    }
+
+    loadSummary();
+    loadPatients();
+</script>
+
+</body>
+</html>
