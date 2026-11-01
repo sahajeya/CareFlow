@@ -39,6 +39,7 @@ const pages = [
   { name: "Patient Flow", icon: GitBranch },
   { name: "Bottleneck Analysis", icon: ChartNoAxesColumn },
   { name: "Conformance", icon: ClipboardCheck },
+  { name: "Process Improvement", icon: Activity },
 ];
 
 function isConformantValue(value) {
@@ -55,6 +56,7 @@ function App() {
   const [activePage, setActivePage] = useState("Overview");
   const [menuOpen, setMenuOpen] = useState(true);
   const [bottlenecks, setBottlenecks] = useState([]);
+  const [improvements, setImprovements] = useState([]);
   const [conformance, setConformance] = useState([]);
   const [eventLogs, setEventLogs] = useState([]);
   const [selectedCase, setSelectedCase] = useState("P0001");
@@ -65,19 +67,22 @@ function App() {
     async function loadCsvData() {
       try {
         const [
-          bottleneckResponse,
-          conformanceResponse,
-          eventLogsResponse,
-        ] = await Promise.all([
-          fetch("/bottleneck_analysis.csv"),
-          fetch("/conformance_results.csv"),
-          fetch("/hospital_event_logs.csv"),
-        ]);
+  bottleneckResponse,
+  conformanceResponse,
+  eventLogsResponse,
+  improvementResponse,
+] = await Promise.all([
+  fetch("/bottleneck_analysis.csv"),
+  fetch("/conformance_results.csv"),
+  fetch("/hospital_event_logs.csv"),
+  fetch("/process_improvement_scenarios.csv"),
+]);
 
         if (
           !bottleneckResponse.ok ||
           !conformanceResponse.ok ||
-          !eventLogsResponse.ok
+          !eventLogsResponse.ok ||
+          !improvementResponse.ok
         ) {
           throw new Error("CSV files could not be loaded.");
         }
@@ -85,6 +90,7 @@ function App() {
         const bottleneckText = await bottleneckResponse.text();
         const conformanceText = await conformanceResponse.text();
         const eventLogsText = await eventLogsResponse.text();
+        const improvementText = await improvementResponse.text();
 
         const bottleneckResult = Papa.parse(bottleneckText, {
           header: true,
@@ -104,6 +110,12 @@ function App() {
           dynamicTyping: true,
         });
 
+        const improvementResult = Papa.parse(improvementText, {
+          header: true,
+          skipEmptyLines: true,
+          dynamicTyping: true,
+        });
+
         const parsedBottlenecks = bottleneckResult.data.map((row) => ({
           ...row,
           activity: `${row.activity_name} → ${row.next_activity}`,
@@ -113,6 +125,7 @@ function App() {
         setBottlenecks(parsedBottlenecks);
         setConformance(conformanceResult.data);
         setEventLogs(eventLogsResult.data);
+        setImprovements(improvementResult.data);
       } catch (error) {
         console.error("CSV loading error:", error);
         setDataError(error.message);
@@ -150,6 +163,12 @@ function App() {
   const topBottleneck = [...bottlenecks].sort(
     (a, b) => b.minutes - a.minutes
   )[0];
+  const improvementChartData = improvements.map((row) => ({
+  scenario: `${row.assumed_reduction_percent}% reduction`,
+  baseline: Number(row.baseline_mean_minutes),
+  simulated: Number(row.simulated_mean_minutes),
+  saved: Number(row.estimated_total_transition_minutes_saved),
+}));
 
   const processDeviations = nonConformantCases;
 
@@ -654,6 +673,131 @@ function App() {
                   </div>
                 </div>
               )}
+
+              {activePage === "Process Improvement" && (
+  <div className="conformance-page">
+    <div className="section-heading">
+      <h2>Process Improvement Simulation</h2>
+      <span>Hypothetical improvement scenarios</span>
+    </div>
+
+    <div className="kpi-grid">
+      <Kpi
+        icon={Clock3}
+        label="Baseline Average"
+        value={
+          improvements.length
+            ? `${Number(improvements[0].baseline_mean_minutes).toFixed(2)} min`
+            : "—"
+        }
+        note="Lab Result → Treatment"
+        color="blue"
+      />
+
+      <Kpi
+        icon={Activity}
+        label="Scenarios Tested"
+        value={improvements.length}
+        note="10% to 40% reduction"
+        color="purple"
+      />
+
+      <Kpi
+        icon={ArrowUpRight}
+        label="Maximum Estimated Saving"
+        value={
+          improvements.length
+            ? `${Math.max(
+                ...improvements.map((row) =>
+                  Number(row.estimated_total_transition_minutes_saved) || 0
+                )
+              ).toFixed(1)} min`
+            : "—"
+        }
+        note="At 40% assumed reduction"
+        color="green"
+      />
+    </div>
+
+    <div className="panel chart-panel">
+      <div className="panel-heading">
+        <div>
+          <h3>Baseline vs Simulated Time</h3>
+          <p>Average transition time in minutes</p>
+        </div>
+      </div>
+
+      <div className="chart-area large-chart">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={improvementChartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="scenario" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar
+              dataKey="baseline"
+              name="Baseline Time"
+              fill="#3978f6"
+            />
+            <Bar
+              dataKey="simulated"
+              name="Simulated Time"
+              fill="#16a34a"
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+
+    <div className="panel">
+      <h3>Improvement Scenario Details</h3>
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Assumed Reduction</th>
+              <th>Baseline (min)</th>
+              <th>Simulated (min)</th>
+              <th>Estimated Saving (min)</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {improvements.map((row, index) => (
+              <tr key={index}>
+                <td>{row.assumed_reduction_percent}%</td>
+                <td>{Number(row.baseline_mean_minutes).toFixed(2)}</td>
+                <td>{Number(row.simulated_mean_minutes).toFixed(2)}</td>
+                <td>
+                  {Number(
+                    row.estimated_total_transition_minutes_saved
+                  ).toFixed(1)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div className="panel">
+      <h3>Suggested Improvement Actions</h3>
+      <ul>
+        <li>Review the Lab Result to Treatment handoff process.</li>
+        <li>Ensure lab results are available to the next care team on time.</li>
+        <li>Review documentation and communication delays.</li>
+      </ul>
+
+      <p className="disclaimer">
+        Note: These are hypothetical simulation results based on assumed
+        reduction percentages. They are estimates, not measured improvements
+        or actual patient outcomes.
+      </p>
+    </div>
+  </div>
+)}
 
               {activePage === "Conformance" && (
                 <div className="conformance-page">

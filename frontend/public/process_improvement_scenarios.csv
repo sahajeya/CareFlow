@@ -1,0 +1,5 @@
+from_activity,to_activity,transition_count,baseline_mean_minutes,assumed_reduction_percent,simulated_mean_minutes,estimated_minutes_saved_per_transition,estimated_total_transition_minutes_saved
+Lab Result,Treatment,56,36.75,10,33.08,3.67,205.8
+Lab Result,Treatment,56,36.75,20,29.4,7.35,411.6
+Lab Result,Treatment,56,36.75,30,25.72,11.03,617.4
+Lab Result,Treatment,56,36.75,40,22.05,14.7,823.2
