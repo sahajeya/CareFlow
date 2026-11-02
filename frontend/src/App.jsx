@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Papa from "papaparse";
 import {
@@ -124,6 +123,11 @@ function App() {
     loadCsvData();
   }, []);
 
+  // Unique patients are counted from the hospital event log.
+  const totalPatients = new Set(
+    eventLogs.map((row) => row.case_id).filter(Boolean)
+  ).size;
+
   const totalCases = conformance.length;
 
   const conformantCases = conformance.filter((row) =>
@@ -151,6 +155,13 @@ function App() {
     (a, b) => b.minutes - a.minutes
   )[0];
 
+  // High priority bottlenecks: 35 minutes or above.
+  const highPriorityBottlenecks = bottlenecks.filter(
+    (item) => Number.isFinite(item.minutes) && item.minutes >= 35
+  );
+
+  const bottleneckCount = highPriorityBottlenecks.length;
+
   const processDeviations = nonConformantCases;
 
   const patientCases = [
@@ -159,9 +170,30 @@ function App() {
     .filter(Boolean)
     .sort();
 
-  const selectedEvents = eventLogs.filter(
-    (row) => row.case_id === selectedCase
-  );
+  // Calculate waiting time between consecutive patient activities.
+  const selectedEvents = eventLogs
+    .filter((row) => row.case_id === selectedCase)
+    .sort(
+      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+    )
+    .map((row, index, events) => {
+      if (index === 0) {
+        return { ...row, waitingMinutes: null };
+      }
+
+      const previousTime = new Date(events[index - 1].timestamp);
+      const currentTime = new Date(row.timestamp);
+
+      const difference =
+        (currentTime - previousTime) / (1000 * 60);
+
+      return {
+        ...row,
+        waitingMinutes: Number.isFinite(difference)
+          ? Math.max(0, Math.round(difference))
+          : null,
+      };
+    });
 
   return (
     <div className="app-shell">
@@ -288,34 +320,34 @@ function App() {
                   <div className="kpi-grid">
                     <Kpi
                       icon={Users}
-                      label="Total Patient Cases"
-                      value={totalCases}
-                      note="Cases analysed"
+                      label="Total Patients"
+                      value={totalPatients}
+                      note="Unique patient cases in event logs"
                       color="blue"
                     />
 
                     <Kpi
                       icon={CircleCheck}
-                      label="Conformant Cases"
-                      value={conformantCases}
-                      note={`${conformantPercent.toFixed(1)}% of cases`}
+                      label="Conformance Rate"
+                      value={`${conformantPercent.toFixed(1)}%`}
+                      note={`${conformantCases} of ${totalCases} cases conformant`}
                       color="green"
                     />
 
                     <Kpi
-                      icon={CircleAlert}
-                      label="Non-conformant"
-                      value={nonConformantCases}
-                      note={`${nonConformantPercent.toFixed(1)}% need review`}
-                      color="orange"
+                      icon={Clock3}
+                      label="Average Fitness"
+                      value={averageFitness.toFixed(2)}
+                      note="Average trace fitness (0–1)"
+                      color="purple"
                     />
 
                     <Kpi
-                      icon={Clock3}
-                      label="Avg. Trace Fitness"
-                      value={averageFitness.toFixed(2)}
-                      note="Process conformance"
-                      color="purple"
+                      icon={CircleAlert}
+                      label="Bottleneck Count"
+                      value={bottleneckCount}
+                      note="High priority · ≥ 35 min"
+                      color="orange"
                     />
                   </div>
 
@@ -469,17 +501,25 @@ function App() {
                         </thead>
 
                         <tbody>
-                          {bottlenecks.slice(0, 5).map((item, index) => (
+                          {bottlenecks.slice(0, 5).map((item) => (
                             <tr key={item.activity}>
                               <td>{item.activity}</td>
                               <td>{item.minutes.toFixed(2)} min</td>
                               <td>
                                 <span
                                   className={`priority ${
-                                    index < 2 ? "high" : "medium"
+                                    item.minutes >= 35
+                                      ? "high"
+                                      : item.minutes >= 30
+                                        ? "medium"
+                                        : "low"
                                   }`}
                                 >
-                                  {index < 2 ? "Review" : "Monitor"}
+                                  {item.minutes >= 35
+                                    ? "High"
+                                    : item.minutes >= 30
+                                      ? "Medium"
+                                      : "Low"}
                                 </span>
                               </td>
                             </tr>
@@ -532,6 +572,31 @@ function App() {
                           <div className="timeline-content">
                             <h4>{row.activity_name}</h4>
                             <p>{row.timestamp}</p>
+
+                            {index > 0 && (
+                              <p
+                                className="waiting-time"
+                                style={{
+                                  color: "#d97706",
+                                  fontSize: "12px",
+                                  fontWeight: 600,
+                                  marginTop: "6px",
+                                }}
+                              >
+                                <Clock3
+                                  size={13}
+                                  style={{
+                                    display: "inline",
+                                    verticalAlign: "middle",
+                                    marginRight: "5px",
+                                  }}
+                                />
+
+                                {row.waitingMinutes !== null
+                                  ? `Waited ${row.waitingMinutes} minutes since previous activity`
+                                  : "Waiting time unavailable"}
+                              </p>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -575,8 +640,7 @@ function App() {
                   </p>
                 </div>
               )}
-
-              {activePage === "Bottleneck Analysis" && (
+                            {activePage === "Bottleneck Analysis" && (
                 <div className="panel chart-panel standalone-chart">
                   {topBottleneck && (
                     <div className="bottleneck-highlight">
@@ -625,10 +689,22 @@ function App() {
 
                         <Bar
                           dataKey="minutes"
-                          fill="#3978f6"
                           radius={[0, 5, 5, 0]}
                           barSize={25}
-                        />
+                        >
+                          {bottlenecks.map((item) => (
+                            <Cell
+                              key={item.activity}
+                              fill={
+                                item.minutes >= 35
+                                  ? "#dc4b4b"
+                                  : item.minutes >= 30
+                                    ? "#ed9b35"
+                                    : "#2eaa70"
+                              }
+                            />
+                          ))}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -639,6 +715,7 @@ function App() {
                         <tr>
                           <th>Transition</th>
                           <th>Average (min)</th>
+                          <th>Priority</th>
                         </tr>
                       </thead>
 
@@ -647,6 +724,23 @@ function App() {
                           <tr key={item.activity}>
                             <td>{item.activity}</td>
                             <td>{item.minutes.toFixed(2)}</td>
+                            <td>
+                              <span
+                                className={`priority ${
+                                  item.minutes >= 35
+                                    ? "high"
+                                    : item.minutes >= 30
+                                      ? "medium"
+                                      : "low"
+                                }`}
+                              >
+                                {item.minutes >= 35
+                                  ? "High"
+                                  : item.minutes >= 30
+                                    ? "Medium"
+                                    : "Low"}
+                              </span>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -831,8 +925,11 @@ function Kpi({ icon: Icon, label, value, note, color }) {
       <div className={`kpi-icon ${color}`}>
         <Icon size={21} />
       </div>
+
       <p>{label}</p>
+
       <div className="kpi-value">{value}</div>
+
       <span>{note}</span>
     </div>
   );
