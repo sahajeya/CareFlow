@@ -47,6 +47,16 @@ df["timestamp"] = pd.to_datetime(
 if df["timestamp"].isnull().any():
     raise ValueError("Invalid timestamps found in event log.")
 
+# Validate duplicate event records
+duplicate_events = df.duplicated(
+    subset=["case_id", "activity_name", "timestamp"]
+)
+
+if duplicate_events.any():
+    raise ValueError(
+        f"Duplicate event records found: {duplicate_events.sum()}"
+    )
+    
 # Sort events by patient and time
 df = df.sort_values(["case_id", "timestamp"])
 
