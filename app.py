@@ -1,28 +1,55 @@
+
 from flask import Flask, jsonify, render_template
 import sqlite3
+import pandas as pd
 from pathlib import Path
 
 app = Flask(__name__)
 
-# Project paths
+# Project folder and database location
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "careflow.db"
 
 
-# Database connection
+# --------------------------------
+# Database Connection
+# --------------------------------
+
 def get_db_connection():
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
     return connection
 
 
-# Home page - Frontend
+# --------------------------------
+# CSV Report Reader
+# --------------------------------
+
+def read_report(filename):
+    file_path = BASE_DIR / filename
+
+    if not file_path.exists():
+        return None
+
+    df = pd.read_csv(file_path)
+    df = df.astype(object).where(pd.notna(df), None)
+
+    return df.to_dict(orient="records")
+
+
+# --------------------------------
+# Home Page
+# --------------------------------
+
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# API: Backend status
+# --------------------------------
+# Backend Status API
+# --------------------------------
+
 @app.route("/api/status")
 def status():
     return jsonify({
@@ -32,7 +59,10 @@ def status():
     })
 
 
-# API: Dashboard summary
+# --------------------------------
+# Dashboard Summary API
+# --------------------------------
+
 @app.route("/api/summary")
 def summary():
     connection = get_db_connection()
@@ -69,7 +99,10 @@ def summary():
         connection.close()
 
 
-# API: Patient journey records
+# --------------------------------
+# Patient Records API
+# --------------------------------
+
 @app.route("/api/patients")
 def patients():
     connection = get_db_connection()
@@ -99,7 +132,10 @@ def patients():
         connection.close()
 
 
-# API: Individual patient details
+# --------------------------------
+# Individual Patient Details API
+# --------------------------------
+
 @app.route("/api/patients/<case_id>")
 def patient_details(case_id):
     connection = get_db_connection()
@@ -129,6 +165,78 @@ def patient_details(case_id):
         connection.close()
 
 
-# Run application
+# --------------------------------
+# Bottleneck Ranking API
+# --------------------------------
+
+@app.route("/api/bottlenecks")
+def bottlenecks():
+    try:
+        data = read_report("bottleneck_ranking_report.csv")
+
+        if data is None:
+            return jsonify({
+                "error": "Bottleneck report not found"
+            }), 404
+
+        return jsonify(data)
+
+    except Exception as error:
+        return jsonify({
+            "error": "Unable to retrieve bottleneck analysis",
+            "details": str(error)
+        }), 500
+
+
+# --------------------------------
+# Patient Pathway Analysis API
+# --------------------------------
+
+@app.route("/api/pathway-analysis")
+def pathway_analysis():
+    try:
+        data = read_report("patient_pathway_summary.csv")
+
+        if data is None:
+            return jsonify({
+                "error": "Patient pathway report not found"
+            }), 404
+
+        return jsonify(data)
+
+    except Exception as error:
+        return jsonify({
+            "error": "Unable to retrieve patient pathway analysis",
+            "details": str(error)
+        }), 500
+
+
+# --------------------------------
+# Activity Waiting Time API
+# --------------------------------
+
+@app.route("/api/activity-waiting")
+def activity_waiting():
+    try:
+        data = read_report("activity_waiting_analysis.csv")
+
+        if data is None:
+            return jsonify({
+                "error": "Activity waiting report not found"
+            }), 404
+
+        return jsonify(data)
+
+    except Exception as error:
+        return jsonify({
+            "error": "Unable to retrieve activity waiting analysis",
+            "details": str(error)
+        }), 500
+
+
+# --------------------------------
+# Run Flask Application
+# --------------------------------
+
 if __name__ == "__main__":
     app.run(debug=True)
