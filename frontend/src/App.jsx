@@ -15,6 +15,7 @@ import {
   CircleAlert,
   ArrowUpRight,
   HeartPulse,
+  Download,
 } from "lucide-react";
 
 import {
@@ -59,6 +60,9 @@ function App() {
   const [selectedCase, setSelectedCase] = useState("P0001");
   const [loading, setLoading] = useState(true);
   const [dataError, setDataError] = useState("");
+  const [activityFilter, setActivityFilter] = useState("All");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     async function loadCsvData() {
@@ -170,30 +174,86 @@ function App() {
     .filter(Boolean)
     .sort();
 
-  // Calculate waiting time between consecutive patient activities.
   const selectedEvents = eventLogs
     .filter((row) => row.case_id === selectedCase)
-    .sort(
-      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+    .filter((row) => {
+       const eventDate = new Date(row.timestamp);
+       const fromDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
+       const toDate = dateTo ? new Date(`${dateTo}T23:59:59`) : null;
+
+       if (fromDate && eventDate < fromDate) return false;
+       if (toDate && eventDate > toDate) return false;
+
+       if (
+         activityFilter !== "All" &&
+         row.activity_name !== activityFilter
+      ) {
+        return false;
+        }
+
+        return true;
+   })
+   .sort(
+     (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
     )
     .map((row, index, events) => {
-      if (index === 0) {
-        return { ...row, waitingMinutes: null };
-      }
+     if (index === 0) {
+      return { ...row, waitingMinutes: null };
+    }
 
-      const previousTime = new Date(events[index - 1].timestamp);
-      const currentTime = new Date(row.timestamp);
+    const previousTime = new Date(events[index - 1].timestamp);
+    const currentTime = new Date(row.timestamp);
 
-      const difference =
-        (currentTime - previousTime) / (1000 * 60);
+    const difference =
+      (currentTime - previousTime) / (1000 * 60);
 
-      return {
-        ...row,
-        waitingMinutes: Number.isFinite(difference)
-          ? Math.max(0, Math.round(difference))
-          : null,
-      };
+    return {
+      ...row,
+      waitingMinutes: Number.isFinite(difference)
+        ? Math.max(0, Math.round(difference))
+        : null,
+    };
+  });
+
+      // Download filtered patient events as CSV
+  const downloadPatientCSV = () => {
+    if (selectedEvents.length === 0) {
+      alert("No patient events available to download.");
+      return;
+    }
+
+    const csvData = selectedEvents.map((row) => ({
+      Case_ID: row.case_id,
+      Activity: row.activity_name,
+      Timestamp: row.timestamp,
+      Waiting_Minutes: row.waitingMinutes ?? "",
+    }));
+
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
     });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `${selectedCase}_Patient_Flow.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Print the filtered patient journey and save it as PDF
+  const downloadPatientPDF = () => {
+    if (selectedEvents.length === 0) {
+      alert("No patient events available to export.");
+      return;
+    }
+
+    window.print();
+  };
 
   return (
     <div className="app-shell">
@@ -537,6 +597,24 @@ function App() {
                   <p>
                     Activities loaded from hospital_event_logs.csv.
                   </p>
+                  
+                  <div className="patient-export-actions">
+                    <button
+                      className="export-btn csv-export-btn"
+                      onClick={downloadPatientCSV}
+                    >
+                      <Download size={16} />
+                      Download CSV
+                    </button>
+
+                    <button
+                      className="export-btn pdf-export-btn"
+                      onClick={downloadPatientPDF}
+                    >
+                     <Download size={16} />
+                     Download PDF
+                    </button>
+                  </div>
 
                   <div className="case-selector">
                     <label htmlFor="patientCase">
@@ -555,6 +633,62 @@ function App() {
                       ))}
                     </select>
                   </div>
+                  
+                  <div className="filter-toolbar">
+                    <div className="filter-field">
+                      <label htmlFor="activityFilter">Activity</label>
+
+                      <select
+                        id="activityFilter"
+                        value={activityFilter}
+                        onChange={(e) => setActivityFilter(e.target.value)}
+                      >
+                        <option value="All">All Activities</option>
+
+                        {[...new Set(eventLogs.map((row) => row.activity_name))]
+                          .filter(Boolean)
+                          .sort()
+                          .map((activity) => (
+                            <option key={activity} value={activity}>
+                              {activity}
+                            </option>
+                       ))}
+                     </select>
+                    </div>
+
+                    <div className="filter-field">
+                      <label htmlFor="dateFrom">From Date</label>
+                      <input
+                        id="dateFrom"
+                        type="date"
+                        value={dateFrom}
+                        max={dateTo || undefined}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="filter-field">
+                      <label htmlFor="dateTo">To Date</label>
+                      <input
+                        id="dateTo"
+                        type="date"
+                        value={dateTo}
+                        min={dateFrom || undefined}
+                        onChange={(e) => setDateTo(e.target.value)}
+                      />
+                    </div>
+
+                    <button
+                      className="reset-filter-btn"
+                      onClick={() => {
+                        setActivityFilter("All");
+                        setDateFrom("");
+                        setDateTo("");
+                      }}
+                    >
+                      Reset Filters
+                    </button>
+                 </div>
 
                   <div className="patient-timeline">
                     <h3>Patient Journey Timeline</h3>
