@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,6 +83,7 @@
         .panel h2 {
             margin-bottom: 18px;
             font-size: 20px;
+            color: #123b5d;
         }
 
         table {
@@ -94,6 +96,7 @@
             padding: 13px;
             border-bottom: 1px solid #e2e8f0;
             font-size: 14px;
+            white-space: nowrap;
         }
 
         th {
@@ -107,8 +110,24 @@
         }
 
         .message {
-            padding: 15px;
+            padding: 15px 0;
             color: #64748b;
+        }
+
+        .level {
+            font-weight: bold;
+        }
+
+        .high {
+            color: #dc2626;
+        }
+
+        .medium {
+            color: #d97706;
+        }
+
+        .low {
+            color: #087f5b;
         }
 
         footer {
@@ -138,11 +157,11 @@
 
 <main>
 
+    <!-- Hospital Overview -->
     <section>
         <h2 class="section-title">Hospital Workflow Overview</h2>
 
         <div class="cards">
-
             <div class="card">
                 <p>Total Patients Analyzed</p>
                 <h2 id="totalPatients">Loading...</h2>
@@ -157,10 +176,10 @@
                 <p>Total Hospital Activities</p>
                 <h2 id="totalActivities">Loading...</h2>
             </div>
-
         </div>
     </section>
 
+    <!-- Patient Journey -->
     <section class="panel">
         <h2>Patient Journey Records</h2>
 
@@ -182,6 +201,78 @@
         </table>
     </section>
 
+    <!-- Bottleneck Ranking -->
+    <section class="panel">
+        <h2>Bottleneck Ranking Analysis</h2>
+
+        <p id="bottleneckMessage" class="message">
+            Loading bottleneck analysis...
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Activity Transition</th>
+                    <th>Average Waiting Time (Minutes)</th>
+                    <th>Maximum Waiting Time</th>
+                    <th>Patient Count</th>
+                    <th>Contribution (%)</th>
+                    <th>Bottleneck Level</th>
+                </tr>
+            </thead>
+
+            <tbody id="bottleneckTable"></tbody>
+        </table>
+    </section>
+
+    <!-- Activity Waiting Time -->
+    <section class="panel">
+        <h2>Activity Waiting Time Analysis</h2>
+
+        <p id="activityMessage" class="message">
+            Loading activity waiting times...
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Activity Name</th>
+                    <th>Patient Count</th>
+                    <th>Average Time (Minutes)</th>
+                    <th>Median Time</th>
+                    <th>Maximum Time</th>
+                </tr>
+            </thead>
+
+            <tbody id="activityTable"></tbody>
+        </table>
+    </section>
+
+    <!-- Patient Pathway Analysis -->
+    <section class="panel">
+        <h2>Patient Pathway Duration Analysis</h2>
+
+        <p id="pathwayMessage" class="message">
+            Loading patient pathway analysis...
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient Case ID</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Total Activities</th>
+                    <th>Total Pathway Time (Minutes)</th>
+                </tr>
+            </thead>
+
+            <tbody id="pathwayTable"></tbody>
+        </table>
+    </section>
+
+    <!-- System Status -->
     <section class="panel">
         <h2>System Status</h2>
         <p class="status" id="systemStatus">
@@ -196,86 +287,246 @@
 </footer>
 
 <script>
+    function showMessage(id, message) {
+        document.getElementById(id).textContent = message;
+    }
+
+    function addCell(row, value) {
+        const cell = document.createElement("td");
+        cell.textContent = value ?? "—";
+        row.appendChild(cell);
+        return cell;
+    }
+
+    async function fetchJSON(url) {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error("Request failed: " + url);
+        }
+
+        return await response.json();
+    }
+
+    // Load hospital summary
     async function loadSummary() {
         try {
-            const response = await fetch("/api/summary");
-
-            if (!response.ok) {
-                throw new Error("Summary API failed");
-            }
-
-            const data = await response.json();
+            const data = await fetchJSON("/api/summary");
 
             document.getElementById("totalPatients").textContent =
-                data.total_patients;
+                data.total_patients ?? "—";
 
             document.getElementById("totalEvents").textContent =
-                data.total_events;
+                data.total_events ?? "—";
 
             document.getElementById("totalActivities").textContent =
-                data.total_activities;
+                data.total_activities ?? "—";
 
-            document.getElementById("systemStatus").textContent =
-                "Backend and database connected successfully.";
+            showMessage(
+                "systemStatus",
+                "Backend and database connected successfully."
+            );
 
         } catch (error) {
-            document.getElementById("systemStatus").textContent =
-                "Unable to connect to the backend.";
-
             document.getElementById("totalPatients").textContent = "—";
             document.getElementById("totalEvents").textContent = "—";
             document.getElementById("totalActivities").textContent = "—";
+
+            showMessage(
+                "systemStatus",
+                "Unable to load summary. Check the backend connection."
+            );
         }
     }
 
+    // Load patient journey records
     async function loadPatients() {
         const table = document.getElementById("patientTable");
-        const message = document.getElementById("patientMessage");
+        table.replaceChildren();
 
         try {
-            const response = await fetch("/api/patients");
+            const patients = await fetchJSON("/api/patients");
 
-            if (!response.ok) {
-                throw new Error("Patient API failed");
-            }
-
-            const patients = await response.json();
-
-            table.replaceChildren();
-
-            if (patients.length === 0) {
-                message.textContent = "No patient records found.";
+            if (!Array.isArray(patients) || patients.length === 0) {
+                showMessage("patientMessage", "No patient records found.");
                 return;
             }
 
-            message.textContent =
-                "Showing " + patients.length + " patient records.";
+            showMessage(
+                "patientMessage",
+                "Showing " + patients.length + " patient records."
+            );
 
             patients.forEach(patient => {
                 const row = document.createElement("tr");
 
-                [
-                    patient.case_id,
-                    patient.start_time,
-                    patient.end_time,
-                    patient.total_activities
-                ].forEach(value => {
-                    const cell = document.createElement("td");
-                    cell.textContent = value ?? "—";
-                    row.appendChild(cell);
-                });
+                addCell(row, patient.case_id);
+                addCell(row, patient.start_time);
+                addCell(row, patient.end_time);
+                addCell(row, patient.total_activities);
 
                 table.appendChild(row);
             });
 
         } catch (error) {
-            message.textContent =
-                "Unable to load patient records. Check the backend.";
+            showMessage(
+                "patientMessage",
+                "Unable to load patient records."
+            );
         }
     }
 
-    loadSummary();
-    loadPatients();
+    // Load bottleneck ranking report
+    async function loadBottlenecks() {
+        const table = document.getElementById("bottleneckTable");
+        table.replaceChildren();
+
+        try {
+            const records = await fetchJSON("/api/bottlenecks");
+
+            if (!Array.isArray(records) || records.length === 0) {
+                showMessage(
+                    "bottleneckMessage",
+                    "No bottleneck records found."
+                );
+                return;
+            }
+
+            showMessage(
+                "bottleneckMessage",
+                "Showing " + records.length + " bottleneck transitions."
+            );
+
+            records.forEach(item => {
+                const row = document.createElement("tr");
+
+                addCell(row, item.rank);
+                addCell(row, item.transition);
+                addCell(row, item.average_minutes);
+                addCell(row, item.maximum_minutes);
+                addCell(row, item.patient_count);
+                addCell(row, item.contribution_percentage);
+
+                const levelCell = addCell(row, item.bottleneck_level);
+                levelCell.classList.add("level");
+
+                const level = String(item.bottleneck_level ?? "").toLowerCase();
+
+                if (level === "high") {
+                    levelCell.classList.add("high");
+                } else if (level === "medium") {
+                    levelCell.classList.add("medium");
+                } else if (level === "low") {
+                    levelCell.classList.add("low");
+                }
+
+                table.appendChild(row);
+            });
+
+        } catch (error) {
+            showMessage(
+                "bottleneckMessage",
+                "Unable to load bottleneck analysis."
+            );
+        }
+    }
+
+    // Load activity waiting time report
+    async function loadActivityWaiting() {
+        const table = document.getElementById("activityTable");
+        table.replaceChildren();
+
+        try {
+            const activities = await fetchJSON("/api/activity-waiting");
+
+            if (!Array.isArray(activities) || activities.length === 0) {
+                showMessage(
+                    "activityMessage",
+                    "No activity waiting records found."
+                );
+                return;
+            }
+
+            showMessage(
+                "activityMessage",
+                "Showing waiting time details for " +
+                activities.length + " activities."
+            );
+
+            activities.forEach(activity => {
+                const row = document.createElement("tr");
+
+                addCell(row, activity.activity_name);
+                addCell(row, activity.count);
+                addCell(row, activity.mean);
+                addCell(row, activity.median);
+                addCell(row, activity.max);
+
+                table.appendChild(row);
+            });
+
+        } catch (error) {
+            showMessage(
+                "activityMessage",
+                "Unable to load activity waiting time analysis."
+            );
+        }
+    }
+
+    // Load patient pathway duration report
+    async function loadPathwayAnalysis() {
+        const table = document.getElementById("pathwayTable");
+        table.replaceChildren();
+
+        try {
+            const pathways = await fetchJSON("/api/pathway-analysis");
+
+            if (!Array.isArray(pathways) || pathways.length === 0) {
+                showMessage(
+                    "pathwayMessage",
+                    "No patient pathway records found."
+                );
+                return;
+            }
+
+            showMessage(
+                "pathwayMessage",
+                "Showing pathway duration for " +
+                pathways.length + " patients."
+            );
+
+            pathways.forEach(patient => {
+                const row = document.createElement("tr");
+
+                addCell(row, patient.case_id);
+                addCell(row, patient.start_time);
+                addCell(row, patient.end_time);
+                addCell(row, patient.total_activities);
+                addCell(row, patient.pathway_minutes);
+
+                table.appendChild(row);
+            });
+
+        } catch (error) {
+            showMessage(
+                "pathwayMessage",
+                "Unable to load patient pathway analysis."
+            );
+        }
+    }
+
+    // Load all dashboard sections
+    async function loadDashboard() {
+        await Promise.all([
+            loadSummary(),
+            loadPatients(),
+            loadBottlenecks(),
+            loadActivityWaiting(),
+            loadPathwayAnalysis()
+        ]);
+    }
+
+    loadDashboard();
 </script>
 
 </body>
