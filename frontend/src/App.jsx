@@ -1,39 +1,75 @@
 import React, { useState, useEffect } from "react";
+
 import Papa from "papaparse";
+
 import {
+
   Activity,
+
   LayoutDashboard,
+
   GitBranch,
+
   ChartNoAxesColumn,
   Grid3X3,
+
   ClipboardCheck,
+
   Menu,
+
   Bell,
+
   Search,
+
   Users,
+
   Clock3,
+
   CircleCheck,
+
   CircleAlert,
+
   ArrowUpRight,
+
   HeartPulse,
+
   Download,
+
 } from "lucide-react";
 
+
+
 import {
+
   ResponsiveContainer,
+
   BarChart,
+
   Bar,
+
   XAxis,
+
   YAxis,
+
   CartesianGrid,
+
   Tooltip,
+
   PieChart,
+
   Pie,
+
   Cell,
+
   Legend,
+
 } from "recharts";
 
+
+
 import "./App.css";
+
+
 
 const pages = [
   { name: "Overview", icon: LayoutDashboard },
@@ -41,6 +77,7 @@ const pages = [
   { name: "Process Map", icon: GitBranch },
   { name: "Waiting Time Heatmap", icon: Grid3X3 },
   { name: "Bottleneck Analysis", icon: ChartNoAxesColumn },
+  { name: "Process Deviation Details", icon: ClipboardCheck },
   { name: "Conformance", icon: ClipboardCheck },
 ];
 
@@ -245,6 +282,11 @@ function App() {
     globallyFilteredCaseIds.has(row.case_id)
   );
 
+  // Show only cases marked non-conformant by the existing conformance output.
+  const processDeviations = globallyFilteredConformance.filter(
+    (row) => !isConformantValue(row.is_conformant)
+  );
+
   // Recalculate transition averages from date/patient-filtered records.
   // Keep the full activity sequence so selecting one activity does not
   // accidentally create artificial transitions between non-adjacent events.
@@ -347,7 +389,6 @@ function App() {
   );
 
   const bottleneckCount = highPriorityBottlenecks.length;
-  const processDeviations = nonConformantCases;
 
   const patientCases = [
     ...new Set(globallyFilteredEvents.map((row) => row.case_id)),
@@ -1181,7 +1222,7 @@ function App() {
 
                           </p>
 
-                          <strong>{processDeviations} cases</strong>
+                          <strong>{processDeviations.length} cases</strong>
 
                         </div>
 
@@ -2182,6 +2223,74 @@ function App() {
 
 
 
+              {activePage === "Process Deviation Details" && (
+                <div className="panel">
+                  <div className="panel-heading">
+                    <div>
+                      <h3>Process Deviation Details</h3>
+                      <p>Cases flagged as non-conformant in the current conformance results</p>
+                    </div>
+                    <span className="priority high">{processDeviations.length} Deviations</span>
+                  </div>
+
+                  <div className="kpi-grid">
+                    <Kpi
+                      icon={CircleAlert}
+                      label="Non-conformant Cases"
+                      value={processDeviations.length}
+                      note="Within current dashboard filters"
+                      color="orange"
+                    />
+                    <Kpi
+                      icon={Users}
+                      label="Cases Reviewed"
+                      value={globallyFilteredConformance.length}
+                      note="Available conformance records"
+                      color="blue"
+                    />
+                  </div>
+
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Case ID</th>
+                          <th>Trace Fitness</th>
+                          <th>Missing Tokens</th>
+                          <th>Remaining Tokens</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {processDeviations.map((row, index) => {
+                          const fitness = Number(row.trace_fitness);
+                          const showTokenValue = (value) =>
+                            value === undefined || value === null || value === ""
+                              ? "Not available"
+                              : String(value);
+                          return (
+                            <tr key={`${row.case_id || index}-deviation`}>
+                              <td>{row.case_id || `Case ${index + 1}`}</td>
+                              <td>{Number.isFinite(fitness) ? fitness.toFixed(2) : "—"}</td>
+                              <td>{showTokenValue(row.missing_tokens)}</td>
+                              <td>{showTokenValue(row.remaining_tokens)}</td>
+                              <td><span className="priority high">Non-conformant</span></td>
+                            </tr>
+                          );
+                        })}
+                        {processDeviations.length === 0 && (
+                          <tr><td colSpan="5">No process deviations found for the current filters.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <p className="disclaimer" style={{ marginTop: "16px" }}>
+                    Deviation details are taken from the existing conformance results. Missing and remaining tokens describe differences between the recorded trace and the process model; they do not indicate clinical errors.
+                  </p>
+                </div>
+              )}
+
               {activePage === "Conformance" && (
 
                 <div className="conformance-page">
@@ -2585,6 +2694,9 @@ function Kpi({ icon: Icon, label, value, note, color }) {
     </div>
 
   );
+
 }
+
+
 
 export default App;
