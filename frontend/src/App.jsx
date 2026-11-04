@@ -1,79 +1,45 @@
 import React, { useState, useEffect } from "react";
-
 import Papa from "papaparse";
-
 import {
-
   Activity,
-
   LayoutDashboard,
-
   GitBranch,
-
   ChartNoAxesColumn,
-
+  Grid3X3,
   ClipboardCheck,
-
   Menu,
-
   Bell,
-
   Search,
-
   Users,
-
   Clock3,
-
   CircleCheck,
-
   CircleAlert,
-
   ArrowUpRight,
-
   HeartPulse,
-
   Download,
-
 } from "lucide-react";
 
-
-
 import {
-
   ResponsiveContainer,
-
   BarChart,
-
   Bar,
-
   XAxis,
-
   YAxis,
-
   CartesianGrid,
-
   Tooltip,
-
   PieChart,
-
   Pie,
-
   Cell,
-
   Legend,
-
 } from "recharts";
 
-
-
 import "./App.css";
-
-
 
 const pages = [
   { name: "Overview", icon: LayoutDashboard },
   { name: "Patient Flow", icon: GitBranch },
   { name: "Process Map", icon: GitBranch },
+  { name: "Waiting Time Heatmap", icon: Grid3X3 },
   { name: "Bottleneck Analysis", icon: ChartNoAxesColumn },
   { name: "Conformance", icon: ClipboardCheck },
 ];
@@ -1879,6 +1845,105 @@ function App() {
                 </div>
               )}
 
+              {activePage === "Waiting Time Heatmap" && (
+                <div className="panel">
+                  <div className="panel-heading">
+                    <div>
+                      <h3>Waiting Time Heatmap</h3>
+                      <p>Average waiting time between consecutive patient activities</p>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "10px",
+                      margin: "18px 0 22px",
+                    }}
+                  >
+                    {[
+                      { label: "Low", range: "Below 30 min", color: "#dcfce7", text: "#166534" },
+                      { label: "Medium", range: "30–34.9 min", color: "#ffedd5", text: "#9a3412" },
+                      { label: "High", range: "35 min and above", color: "#fee2e2", text: "#991b1b" },
+                    ].map((level) => (
+                      <div
+                        key={level.label}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "7px",
+                          padding: "7px 11px",
+                          borderRadius: "8px",
+                          background: level.color,
+                          color: level.text,
+                          fontSize: "12px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span>{level.label}</span>
+                        <span style={{ fontWeight: 400 }}>({level.range})</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {filteredBottlenecks.length > 0 ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                        gap: "14px",
+                      }}
+                    >
+                      {filteredBottlenecks.map((item, index) => {
+                        const minutes = Number(item.minutes);
+                        const level = minutes >= 35
+                          ? { label: "High delay", background: "#fee2e2", color: "#991b1b", border: "#fca5a5" }
+                          : minutes >= 30
+                            ? { label: "Medium delay", background: "#ffedd5", color: "#9a3412", border: "#fdba74" }
+                            : { label: "Low delay", background: "#dcfce7", color: "#166534", border: "#86efac" };
+
+                        return (
+                          <div
+                            key={`${item.activity}-${index}`}
+                            style={{
+                              padding: "18px",
+                              borderRadius: "12px",
+                              background: level.background,
+                              border: `1px solid ${level.border}`,
+                              color: level.color,
+                              minHeight: "112px",
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <strong style={{ fontSize: "13px", lineHeight: 1.5 }}>
+                              {item.activity}
+                            </strong>
+                            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "8px", marginTop: "12px" }}>
+                              <strong style={{ fontSize: "25px" }}>
+                                {Number.isFinite(minutes) ? minutes.toFixed(1) : "—"}
+                                <span style={{ fontSize: "12px", marginLeft: "4px" }}>min</span>
+                              </strong>
+                              <span style={{ fontSize: "11px", fontWeight: 600 }}>{level.label}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p style={{ padding: "24px", textAlign: "center" }}>
+                      No waiting-time data available for the selected filters.
+                    </p>
+                  )}
+
+                  <p className="disclaimer" style={{ marginTop: "18px" }}>
+                    Heatmap colors classify average transition waiting times: below 30 minutes is low, 30–34.9 minutes is medium, and 35 minutes or more is high. Values respond to the current dashboard filters. These are process-delay indicators, not clinical outcomes.
+                  </p>
+                </div>
+              )}
+
               {activePage === "Bottleneck Analysis" && (
 
                 <div className="panel chart-panel standalone-chart">
@@ -2520,9 +2585,6 @@ function Kpi({ icon: Icon, label, value, note, color }) {
     </div>
 
   );
-
 }
-
-
 
 export default App;
