@@ -48,7 +48,8 @@ function isConformantValue(value) {
     value === 1 ||
     value === "1" ||
     value === "True" ||
-    value === "true"
+    value === "true" ||
+    value === "Conforming"
   );
 }
 
@@ -67,16 +68,16 @@ function App() {
     async function loadCsvData() {
       try {
         const [
-  bottleneckResponse,
-  conformanceResponse,
-  eventLogsResponse,
-  improvementResponse,
-] = await Promise.all([
-  fetch("/bottleneck_analysis.csv"),
-  fetch("/conformance_results.csv"),
-  fetch("/hospital_event_logs.csv"),
-  fetch("/process_improvement_scenarios.csv"),
-]);
+          bottleneckResponse,
+          conformanceResponse,
+          eventLogsResponse,
+          improvementResponse,
+        ] = await Promise.all([
+          fetch("/bottleneck_analysis.csv"),
+          fetch("/conformance_results.csv"),
+          fetch("/hospital_event_logs.csv"),
+          fetch("/process_improvement_scenarios.csv"),
+        ]);
 
         if (
           !bottleneckResponse.ok ||
@@ -140,14 +141,14 @@ function App() {
   const totalCases = conformance.length;
 
   const conformantCases = conformance.filter((row) =>
-    isConformantValue(row.is_conformant)
+    isConformantValue(row.status)
   ).length;
 
   const nonConformantCases = totalCases - conformantCases;
 
   const averageFitness = totalCases
     ? conformance.reduce(
-        (sum, row) => sum + (Number(row.trace_fitness) || 0),
+        (sum, row) => sum + (Number(row.pathway_similarity_score) || 0),
         0
       ) / totalCases
     : 0;
@@ -163,12 +164,13 @@ function App() {
   const topBottleneck = [...bottlenecks].sort(
     (a, b) => b.minutes - a.minutes
   )[0];
+
   const improvementChartData = improvements.map((row) => ({
-  scenario: `${row.assumed_reduction_percent}% reduction`,
-  baseline: Number(row.baseline_mean_minutes),
-  simulated: Number(row.simulated_mean_minutes),
-  saved: Number(row.estimated_total_transition_minutes_saved),
-}));
+    scenario: `${row.assumed_reduction_percent}% reduction`,
+    baseline: Number(row.baseline_mean_minutes),
+    simulated: Number(row.simulated_mean_minutes),
+    saved: Number(row.estimated_total_transition_minutes_saved),
+  }));
 
   const processDeviations = nonConformantCases;
 
@@ -243,10 +245,7 @@ function App() {
               <input placeholder="Search dashboard..." />
             </div>
 
-            <button
-              className="icon-button"
-              title="Notifications"
-            >
+            <button className="icon-button" title="Notifications">
               <Bell size={19} />
             </button>
 
@@ -289,7 +288,7 @@ function App() {
             <div className="panel">
               <p>{dataError}</p>
               <p>
-                Check that all three CSV files are inside the frontend
+                Check that all four CSV files are inside the frontend
                 public folder.
               </p>
             </div>
@@ -331,9 +330,9 @@ function App() {
 
                     <Kpi
                       icon={Clock3}
-                      label="Avg. Trace Fitness"
+                      label="Average Pathway Similarity"
                       value={averageFitness.toFixed(2)}
-                      note="Process conformance"
+                      note="Sequence similarity score"
                       color="purple"
                     />
                   </div>
@@ -675,134 +674,158 @@ function App() {
               )}
 
               {activePage === "Process Improvement" && (
-  <div className="conformance-page">
-    <div className="section-heading">
-      <h2>Process Improvement Simulation</h2>
-      <span>Hypothetical improvement scenarios</span>
-    </div>
+                <div className="conformance-page">
+                  <div className="section-heading">
+                    <h2>Process Improvement Simulation</h2>
+                    <span>Hypothetical improvement scenarios</span>
+                  </div>
 
-    <div className="kpi-grid">
-      <Kpi
-        icon={Clock3}
-        label="Baseline Average"
-        value={
-          improvements.length
-            ? `${Number(improvements[0].baseline_mean_minutes).toFixed(2)} min`
-            : "—"
-        }
-        note="Lab Result → Treatment"
-        color="blue"
-      />
+                  <div className="kpi-grid">
+                    <Kpi
+                      icon={Clock3}
+                      label="Baseline Average"
+                      value={
+                        improvements.length
+                          ? `${Number(
+                              improvements[0].baseline_mean_minutes
+                            ).toFixed(2)} min`
+                          : "—"
+                      }
+                      note="Lab Result → Treatment"
+                      color="blue"
+                    />
 
-      <Kpi
-        icon={Activity}
-        label="Scenarios Tested"
-        value={improvements.length}
-        note="10% to 40% reduction"
-        color="purple"
-      />
+                    <Kpi
+                      icon={Activity}
+                      label="Scenarios Tested"
+                      value={improvements.length}
+                      note="10% to 40% reduction"
+                      color="purple"
+                    />
 
-      <Kpi
-        icon={ArrowUpRight}
-        label="Maximum Estimated Saving"
-        value={
-          improvements.length
-            ? `${Math.max(
-                ...improvements.map((row) =>
-                  Number(row.estimated_total_transition_minutes_saved) || 0
-                )
-              ).toFixed(1)} min`
-            : "—"
-        }
-        note="At 40% assumed reduction"
-        color="green"
-      />
-    </div>
+                    <Kpi
+                      icon={ArrowUpRight}
+                      label="Maximum Estimated Saving"
+                      value={
+                        improvements.length
+                          ? `${Math.max(
+                              ...improvements.map(
+                                (row) =>
+                                  Number(
+                                    row.estimated_total_transition_minutes_saved
+                                  ) || 0
+                              )
+                            ).toFixed(1)} min`
+                          : "—"
+                      }
+                      note="At 40% assumed reduction"
+                      color="green"
+                    />
+                  </div>
 
-    <div className="panel chart-panel">
-      <div className="panel-heading">
-        <div>
-          <h3>Baseline vs Simulated Time</h3>
-          <p>Average transition time in minutes</p>
-        </div>
-      </div>
+                  <div className="panel chart-panel">
+                    <div className="panel-heading">
+                      <div>
+                        <h3>Baseline vs Simulated Time</h3>
+                        <p>Average transition time in minutes</p>
+                      </div>
+                    </div>
 
-      <div className="chart-area large-chart">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={improvementChartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="scenario" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar
-              dataKey="baseline"
-              name="Baseline Time"
-              fill="#3978f6"
-            />
-            <Bar
-              dataKey="simulated"
-              name="Simulated Time"
-              fill="#16a34a"
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+                    <div className="chart-area large-chart">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={improvementChartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="scenario" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
 
-    <div className="panel">
-      <h3>Improvement Scenario Details</h3>
+                          <Bar
+                            dataKey="baseline"
+                            name="Baseline Time"
+                            fill="#3978f6"
+                          />
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Assumed Reduction</th>
-              <th>Baseline (min)</th>
-              <th>Simulated (min)</th>
-              <th>Estimated Saving (min)</th>
-            </tr>
-          </thead>
+                          <Bar
+                            dataKey="simulated"
+                            name="Simulated Time"
+                            fill="#16a34a"
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
 
-          <tbody>
-            {improvements.map((row, index) => (
-              <tr key={index}>
-                <td>{row.assumed_reduction_percent}%</td>
-                <td>{Number(row.baseline_mean_minutes).toFixed(2)}</td>
-                <td>{Number(row.simulated_mean_minutes).toFixed(2)}</td>
-                <td>
-                  {Number(
-                    row.estimated_total_transition_minutes_saved
-                  ).toFixed(1)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                  <div className="panel">
+                    <h3>Improvement Scenario Details</h3>
 
-    <div className="panel">
-      <h3>Suggested Improvement Actions</h3>
-      <ul>
-        <li>Review the Lab Result to Treatment handoff process.</li>
-        <li>Ensure lab results are available to the next care team on time.</li>
-        <li>Review documentation and communication delays.</li>
-      </ul>
+                    <div className="table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Assumed Reduction</th>
+                            <th>Baseline (min)</th>
+                            <th>Simulated (min)</th>
+                            <th>Estimated Saving (min)</th>
+                          </tr>
+                        </thead>
 
-      <p className="disclaimer">
-        Note: These are hypothetical simulation results based on assumed
-        reduction percentages. They are estimates, not measured improvements
-        or actual patient outcomes.
-      </p>
-    </div>
-  </div>
-)}
+                        <tbody>
+                          {improvements.map((row, index) => (
+                            <tr key={index}>
+                              <td>{row.assumed_reduction_percent}%</td>
+                              <td>
+                                {Number(
+                                  row.baseline_mean_minutes
+                                ).toFixed(2)}
+                              </td>
+                              <td>
+                                {Number(
+                                  row.simulated_mean_minutes
+                                ).toFixed(2)}
+                              </td>
+                              <td>
+                                {Number(
+                                  row.estimated_total_transition_minutes_saved
+                                ).toFixed(1)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="panel">
+                    <h3>Suggested Improvement Actions</h3>
+
+                    <ul>
+                      <li>
+                        Review the Lab Result to Treatment handoff process.
+                      </li>
+                      <li>
+                        Ensure lab results are available to the next care
+                        team on time.
+                      </li>
+                      <li>
+                        Review documentation and communication delays.
+                      </li>
+                    </ul>
+
+                    <p className="disclaimer">
+                      Note: These are hypothetical simulation results based
+                      on assumed reduction percentages. They are estimates,
+                      not measured improvements or actual patient outcomes.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {activePage === "Conformance" && (
                 <div className="conformance-page">
                   <div className="panel">
                     <h3>Conformance Analysis</h3>
+
                     <p>
                       Patient cases evaluated against the discovered process
                       model.
@@ -880,7 +903,7 @@ function App() {
                         <thead>
                           <tr>
                             <th>Case ID</th>
-                            <th>Trace Fitness</th>
+                            <th>Pathway Similarity</th>
                             <th>Conformance Status</th>
                           </tr>
                         </thead>
@@ -888,10 +911,10 @@ function App() {
                         <tbody>
                           {conformance.map((row, index) => {
                             const isConformant = isConformantValue(
-                              row.is_conformant
+                              row.status
                             );
 
-                            const fitness = Number(row.trace_fitness);
+                            const fitness = Number(row.pathway_similarity_score);
 
                             return (
                               <tr key={`${row.case_id || index}`}>
@@ -901,8 +924,8 @@ function App() {
 
                                 <td>
                                   {Number.isFinite(fitness)
-                                    ? fitness.toFixed(2)
-                                    : "—"}
+                                    ? fitness.toFixed(4)
+                                    : "N/A"}
                                 </td>
 
                                 <td>
@@ -938,20 +961,21 @@ function App() {
                   </div>
 
                   <div className="panel">
-                    <h3>Trace Fitness</h3>
+                    <h3>Average Pathway Similarity</h3>
 
                     <div className="fitness-number">
-                      {averageFitness.toFixed(2)} <span>/ 1.00</span>
+                      {totalCases ? averageFitness.toFixed(4) : "N/A"}
                     </div>
 
                     <p>
-                      Average trace fitness from the current conformance
-                      results.
+                      Average sequence similarity score from the current
+                      conformance results.
                     </p>
 
                     <p className="disclaimer">
-                      Use this score as a process similarity measure, not a
-                      patient outcome measure.
+                      This score is calculated using sequence similarity.
+                      It is not formal PM4Py trace fitness or a patient
+                      outcome measure.
                     </p>
                   </div>
                 </div>
@@ -975,6 +999,7 @@ function Kpi({ icon: Icon, label, value, note, color }) {
       <div className={`kpi-icon ${color}`}>
         <Icon size={21} />
       </div>
+
       <p>{label}</p>
       <div className="kpi-value">{value}</div>
       <span>{note}</span>

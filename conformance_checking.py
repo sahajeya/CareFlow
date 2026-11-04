@@ -25,8 +25,15 @@ ideal_pathway = [
 results = []
 
 for patient_id, group in df.groupby("case_id"):
-    actual_pathway = group["activity_name"].tolist()
+    fitness_matcher = SequenceMatcher(
+        a=ideal_pathway,
+        b=group["activity_name"].tolist(),
+        autojunk=False
+    )
 
+    pathway_similarity_score = fitness_matcher.ratio()
+
+    actual_pathway = group["activity_name"].tolist()
     if actual_pathway == ideal_pathway:
         status = "Conforming"
         deviation_details = "No deviation"
@@ -67,12 +74,13 @@ for patient_id, group in df.groupby("case_id"):
         deviation_details = "; ".join(differences)
 
     results.append({
-        "case_id": patient_id,
-        "actual_pathway": " -> ".join(actual_pathway),
-        "ideal_pathway": " -> ".join(ideal_pathway),
-        "status": status,
-        "deviation_details": deviation_details,
-        "number_of_events": len(actual_pathway),
+    "case_id": patient_id,
+    "actual_pathway": " -> ".join(actual_pathway),
+    "ideal_pathway": " -> ".join(ideal_pathway),
+    "status": status,
+    "pathway_similarity_score": round(pathway_similarity_score, 4),
+    "deviation_details": deviation_details,
+    "number_of_events": len(actual_pathway),
     })
 
 # 5. Save patient-level conformance results
