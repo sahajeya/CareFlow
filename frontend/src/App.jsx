@@ -255,6 +255,85 @@ function App() {
     window.print();
   };
 
+    // Download bottleneck analysis as CSV
+  const downloadBottleneckCSV = () => {
+    if (bottlenecks.length === 0) {
+      alert("No bottleneck data available to download.");
+      return;
+    }
+
+    const csvData = bottlenecks.map((item) => ({
+      Activity: item.activity_name,
+      Next_Activity: item.next_activity,
+      Transition: item.activity,
+      Average_Minutes: item.minutes.toFixed(2),
+      Priority:
+        item.minutes >= 35
+          ? "High"
+          : item.minutes >= 30
+            ? "Medium"
+            : "Low",
+    }));
+
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "CareFlow_Bottleneck_Analysis.csv";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+    // Download conformance results as CSV
+  const downloadConformanceCSV = () => {
+    if (conformance.length === 0) {
+      alert("No conformance data available to download.");
+      return;
+    }
+
+    const csvData = conformance.map((row) => ({
+      Case_ID: row.case_id,
+      Trace_Fitness: Number(row.trace_fitness).toFixed(2),
+      Conformance_Status: isConformantValue(row.is_conformant)
+        ? "Conformant"
+        : "Non-conformant",
+    }));
+
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "CareFlow_Conformance_Results.csv";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Print conformance report and save as PDF
+  const downloadConformancePDF = () => {
+    if (conformance.length === 0) {
+      alert("No conformance data available to export.");
+      return;
+    }
+
+    window.print();
+  };
+
   return (
     <div className="app-shell">
       <aside className={`sidebar ${menuOpen ? "" : "collapsed"}`}>
@@ -793,6 +872,16 @@ function App() {
                     </div>
                   </div>
 
+                  <div className="patient-export-actions">
+                    <button
+                      className="export-btn csv-export-btn"
+                      onClick={downloadBottleneckCSV}
+                    >
+                      <Download size={16} />
+                      Download CSV
+                    </button>
+                  </div>
+
                   <div className="chart-area large-chart">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
@@ -891,6 +980,24 @@ function App() {
                       Patient cases evaluated against the discovered process
                       model.
                     </p>
+
+                    <div className="patient-export-actions">
+                      <button
+                        className="export-btn csv-export-btn"
+                        onClick={downloadConformanceCSV}
+                      >
+                        <Download size={16} />
+                        Download CSV
+                      </button>
+
+                      <button
+                        className="export-btn pdf-export-btn"
+                        onClick={downloadConformancePDF}
+                      >
+                        <Download size={16} />
+                        Download PDF
+                      </button>
+                    </div>
 
                     <div className="kpi-grid">
                       <Kpi
