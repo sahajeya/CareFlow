@@ -1,0 +1,10 @@
+activity_name,next_activity,count,mean,median,max
+Lab Result,Doctor Consultation,24,37.83,40.5,60.0
+Triage,Doctor Consultation,100,36.18,38.0,60.0
+Doctor Consultation,Lab Test,85,35.05,36.0,59.0
+Treatment,Discharge,100,33.61,32.0,60.0
+Patient Registration,Triage,100,33.06,36.5,59.0
+Lab Test,Lab Result,85,33.0,34.0,60.0
+Lab Result,Treatment,61,32.98,32.0,59.0
+Doctor Consultation,Treatment,39,30.64,27.0,58.0
+Treatment,Treatment,17,29.24,28.0,56.0
