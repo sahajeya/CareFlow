@@ -78,6 +78,7 @@ const pages = [
   { name: "Waiting Time Heatmap", icon: Grid3X3 },
   { name: "Bottleneck Analysis", icon: ChartNoAxesColumn },
   { name: "Process Deviation Details", icon: ClipboardCheck },
+  { name: "Patient Search", icon: Search },
   { name: "Conformance", icon: ClipboardCheck },
 ];
 
@@ -128,6 +129,7 @@ function App() {
   const [dateFrom, setDateFrom] = useState("");
 
   const [dateTo, setDateTo] = useState("");
+  const [patientSearchQuery, setPatientSearchQuery] = useState("");
 
 
 
@@ -2288,6 +2290,71 @@ function App() {
                   <p className="disclaimer" style={{ marginTop: "16px" }}>
                     Deviation details are taken from the existing conformance results. Missing and remaining tokens describe differences between the recorded trace and the process model; they do not indicate clinical errors.
                   </p>
+                </div>
+              )}
+
+              {activePage === "Patient Search" && (
+                <div className="panel">
+                  <div className="panel-heading">
+                    <div>
+                      <h3>Patient Search</h3>
+                      <p>Find patient cases using the available event-log records</p>
+                    </div>
+                  </div>
+
+                  <div className="filter-field" style={{ maxWidth: "460px", margin: "18px 0" }}>
+                    <label htmlFor="patientSearchInput">Search by Patient ID or Activity</label>
+                    <input
+                      id="patientSearchInput"
+                      type="text"
+                      value={patientSearchQuery}
+                      onChange={(event) => setPatientSearchQuery(event.target.value)}
+                      placeholder="Example: P0001 or Triage"
+                    />
+                  </div>
+
+                  {(() => {
+                    const query = patientSearchQuery.trim().toLowerCase();
+                    const matchingEvents = globallyFilteredEvents.filter((row) =>
+                      !query ||
+                      String(row.case_id || "").toLowerCase().includes(query) ||
+                      String(row.activity_name || "").toLowerCase().includes(query)
+                    );
+                    const matchingCases = [...new Set(matchingEvents.map((row) => row.case_id))];
+                    return (
+                      <>
+                        <div className="kpi-grid">
+                          <Kpi icon={Users} label="Matching Patients" value={matchingCases.length} note="Based on current dashboard filters" color="blue" />
+                          <Kpi icon={Activity} label="Matching Events" value={matchingEvents.length} note="Event-log records found" color="green" />
+                        </div>
+                        <div className="table-wrap">
+                          <table>
+                            <thead>
+                              <tr><th>Patient ID</th><th>Activities Found</th><th>First Recorded Event</th><th>Last Recorded Event</th><th>Action</th></tr>
+                            </thead>
+                            <tbody>
+                              {matchingCases.map((caseId) => {
+                                const rows = matchingEvents.filter((row) => row.case_id === caseId).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                                return (
+                                  <tr key={caseId}>
+                                    <td>{caseId}</td>
+                                    <td>{rows.length}</td>
+                                    <td>{rows[0]?.timestamp || "—"}</td>
+                                    <td>{rows[rows.length - 1]?.timestamp || "—"}</td>
+                                    <td><button className="export-btn" onClick={() => { setSelectedCase(caseId); setGlobalPatientFilter(caseId); setPatientSearchQuery(""); setActivePage("Patient Flow"); }}>View Journey</button></td>
+                                  </tr>
+                                );
+                              })}
+                              {matchingCases.length === 0 && (
+                                <tr><td colSpan="5">No matching patient records found.</td></tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="disclaimer" style={{ marginTop: "16px" }}>Search results use the existing patient event log and respect the active patient, activity, and date filters. No department information is inferred or generated.</p>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
