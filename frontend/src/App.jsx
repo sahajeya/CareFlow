@@ -77,6 +77,7 @@ const pages = [
   { name: "Process Map", icon: GitBranch },
   { name: "Waiting Time Heatmap", icon: Grid3X3 },
   { name: "Bottleneck Analysis", icon: ChartNoAxesColumn },
+  { name: "Alerts & Delay Prediction", icon: Bell },
   { name: "Process Deviation Details", icon: ClipboardCheck },
   { name: "Patient Search", icon: Search },
   { name: "Conformance", icon: ClipboardCheck },
@@ -340,16 +341,22 @@ function App() {
             activity: key,
             totalMinutes: 0,
             count: 0,
+            maxMinutes: 0,
           };
         }
         transitions[key].totalMinutes += minutes;
         transitions[key].count += 1;
+        transitions[key].maxMinutes = Math.max(
+          transitions[key].maxMinutes,
+          minutes
+        );
       }
     });
 
     return Object.values(transitions).map((item) => ({
       ...item,
       minutes: item.count ? item.totalMinutes / item.count : 0,
+      max: item.maxMinutes,
     }));
   })();
 
@@ -391,6 +398,38 @@ function App() {
   );
 
   const bottleneckCount = highPriorityBottlenecks.length;
+  
+  const delayAlerts = filteredBottlenecks
+  .map((item) => {
+    const minutes = Number(item.minutes) || 0;
+
+    const risk =
+      minutes >= 40
+        ? "Critical"
+        : minutes >= 35
+          ? "High"
+          : minutes >= 30
+            ? "Medium"
+            : "Low";
+
+    return {
+      ...item,
+      risk,
+    };
+  })
+  .sort((a, b) => b.minutes - a.minutes);
+
+  const criticalAlerts = delayAlerts.filter(
+   (item) => item.risk === "Critical"
+  );
+
+  const highRiskAlerts = delayAlerts.filter(
+   (item) => item.risk === "High"
+  );
+
+  const mediumRiskAlerts = delayAlerts.filter(
+   (item) => item.risk === "Medium"
+  );
 
   const patientCases = [
     ...new Set(globallyFilteredEvents.map((row) => row.case_id)),
@@ -2358,6 +2397,171 @@ function App() {
                 </div>
               )}
 
+                            {/* Existing previous page code */}
+              
+              {/* Alerts & Delay Prediction */}
+              {activePage === "Alerts & Delay Prediction" && (
+                <div className="panel">
+                  <div className="panel-heading">
+                    <div>
+                      <h3>Alerts & Delay Prediction</h3>
+                      <p>
+                        Rule-based delay risk alerts from the current
+                        waiting-time analysis
+                      </p>
+                    </div>
+
+                    <span className="priority high">
+                      {
+                        delayAlerts.filter(
+                          (item) =>
+                            item.risk === "Critical" ||
+                            item.risk === "High"
+                        ).length
+                      }{" "}
+                      Active Alerts
+                    </span>
+                  </div>
+
+                  <div className="kpi-grid">
+                    <Kpi
+                      icon={CircleAlert}
+                      label="Critical Delays"
+                      value={criticalAlerts.length}
+                      note="Average wait ≥ 40 min"
+                      color="orange"
+                    />
+
+                    <Kpi
+                      icon={Bell}
+                      label="High-Risk Delays"
+                      value={highRiskAlerts.length}
+                      note="Average wait 35–39.9 min"
+                      color="purple"
+                    />
+
+                    <Kpi
+                      icon={Clock3}
+                      label="Medium-Risk Delays"
+                      value={mediumRiskAlerts.length}
+                      note="Average wait 30–34.9 min"
+                      color="blue"
+                    />
+                  </div>
+
+                  <div
+                    className="table-wrap"
+                    style={{ marginTop: "18px" }}
+                  >
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Transition</th>
+                          <th>Average Wait</th>
+                          <th>Maximum Wait</th>
+                          <th>Cases</th>
+                          <th>Delay Risk</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {delayAlerts.map((item, index) => (
+                          <tr key={`${item.activity}-${index}`}>
+                            <td>{item.activity}</td>
+
+                            <td>
+                              {Number(item.minutes).toFixed(2)} min
+                            </td>
+
+                            <td>
+                              {Number.isFinite(Number(item.max))
+                                ? `${Number(item.max).toFixed(1)} min`
+                                : "—"}
+                            </td>
+
+                            <td>
+                              {Number.isFinite(Number(item.count))
+                                ? item.count
+                                : "—"}
+                            </td>
+
+                            <td>
+                              <span
+                                className={`priority ${
+                                  item.risk === "Critical" ||
+                                  item.risk === "High"
+                                    ? "high"
+                                    : item.risk === "Medium"
+                                      ? "medium"
+                                      : "low"
+                                }`}
+                              >
+                                {item.risk}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+
+                        {delayAlerts.length === 0 && (
+                          <tr>
+                            <td colSpan="5">
+                              No delay alerts found for the current filters.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "18px",
+                      padding: "16px",
+                      borderRadius: "10px",
+                      background: "#f5f8ff",
+                      border: "1px solid #dbe7ff",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <CircleAlert size={18} color="#3978f6" />
+
+                      <strong style={{ color: "#24334d" }}>
+                        Delay-risk method
+                      </strong>
+                    </div>
+
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#56657a",
+                        fontSize: "13px",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Risk is classified from the current average transition
+                      waiting time: Critical ≥ 40 min, High 35–39.9 min,
+                      Medium 30–34.9 min, and Low below 30 min. This is a
+                      process-delay indicator based on the supplied event-log
+                      analysis, not a clinical prediction or machine-learning
+                      model.
+                    </p>
+                  </div>
+
+                  <p className="disclaimer" style={{ marginTop: "16px" }}>
+                    Alerts respond to the active patient and date filters.
+                    They identify process delays that may need operational
+                    review and do not predict patient outcomes.
+                  </p>
+                </div>
+              )}
+
               {activePage === "Conformance" && (
 
                 <div className="conformance-page">
@@ -2763,7 +2967,5 @@ function Kpi({ icon: Icon, label, value, note, color }) {
   );
 
 }
-
-
 
 export default App;
