@@ -131,6 +131,9 @@ function App() {
 
   const [dateTo, setDateTo] = useState("");
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+
+  
 
 
 
@@ -758,15 +761,32 @@ function App() {
       return;
 
     }
-
-
-
     window.print();
 
   };
+  
+   if (!isAdminLoggedIn) {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <div className="login-icon">
+            <Activity size={28} />
+          </div>
 
+          <h2>CareFlow</h2>
+          <p>Clinical Analytics Admin Login</p>
 
-
+          <button
+            onClick={() => setIsAdminLoggedIn(true)}
+            className="login-button"
+          >
+            Login as Admin
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
   return (
 
     <div className="app-shell">
@@ -846,6 +866,15 @@ function App() {
           {menuOpen && <span>Clinical Process Mining</span>}
 
         </div>
+
+                <button
+          className="sidebar-bottom"
+          onClick={() => setIsAdminLoggedIn(false)}
+          title="Logout"
+        >
+          <Activity size={20} />
+          {menuOpen && <span>Logout</span>}
+        </button>
 
       </aside>
 
